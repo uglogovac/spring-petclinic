@@ -1,0 +1,71 @@
+name: CI Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  checkstyle:
+    runs-on: [maven:3.8.5-openjdk-17]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Run Checkstyle
+        run: ./gradlew checkstyleMain checkstyleTest
+      
+      - name: Upload Checkstyle Report
+        uses: actions/upload-artifact@v2
+        with:
+          name: checkstyle-report
+          path: build/reports/checkstyle/
+
+  test:
+    runs-on: [maven:3.8.5-openjdk-17]
+    needs: checkstyle
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Run Tests
+        run: ./gradlew test
+
+  build:
+    runs-on: [maven:3.8.5-openjdk-17]
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Build without tests
+        run: ./gradlew build -x test
+
+  create_docker_image_mr:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Build Docker Image for MR
+        run: |
+          docker build -t uglogovac/mr:${{ github.sha }} .
+          docker push uglogovac/mr:${{ github.sha }}
+
+  create_docker_image_main:
+    runs-on: ubuntu-latest
+    needs: [checkstyle, test, build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Build Docker Image for Main Branch
+        run: |
+          docker build -t uglogovac/main:latest .
+          docker push uglogovac/main:latest
