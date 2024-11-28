@@ -9,7 +9,7 @@ on:
 
 jobs:
   checkstyle:
-    runs-on: [maven:3.8.5-openjdk-17]
+    runs-on: maven:3.8.5-openjdk-17
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -24,7 +24,7 @@ jobs:
           path: build/reports/checkstyle/
 
   test:
-    runs-on: [maven:3.8.5-openjdk-17]
+    runs-on: maven:3.8.5-openjdk-17
     needs: checkstyle
     steps:
       - name: Checkout code
@@ -34,7 +34,7 @@ jobs:
         run: ./gradlew test
 
   build:
-    runs-on: [maven:3.8.5-openjdk-17]
+    runs-on: maven:3.8.5-openjdk-17
     needs: test
     steps:
       - name: Checkout code
